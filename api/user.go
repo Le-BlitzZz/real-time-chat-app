@@ -13,10 +13,14 @@ type UserDatabase interface {
 	GetUserByName(name string) (*sql.User, error)
 	GetUserByEmail(email string) (*sql.User, error)
 	CreateUser(user *sql.User) error
-	// UpdateUser(user *sql.User) error
+	GetFriends(userID uint) ([]sql.User, error)
+	CreateFriendRequest(senderID, receiverID uint) error
+	GetFriendRequests(receiverID uint) ([]sql.FriendRequest, error)
+	AcceptFriendRequest(requestID uint) error
+	RejectFriendRequest(requestID uint) error
 }
 
-type LoginUser struct {
+type loginUser struct {
 	Identifier string `json:"identifier" binding:"required"` // Can be username or email
 	Password   string `json:"password" binding:"required"`
 }
@@ -26,7 +30,7 @@ type UserAPI struct {
 }
 
 func (api *UserAPI) Register(ctx *gin.Context) {
-	user := sql.CreateUser{}
+	user := sql.UserCreation{}
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -58,7 +62,7 @@ func (api *UserAPI) Register(ctx *gin.Context) {
 }
 
 func (api *UserAPI) Login(ctx *gin.Context) {
-	user := LoginUser{}
+	user := loginUser{}
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -104,4 +108,20 @@ func (u *UserAPI) Logout(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "logout successful"})
+}
+
+func (api *UserAPI) GetFriends(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	friends, err := api.DB.GetFriends(userID.(uint))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve friends"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, friends)
 }

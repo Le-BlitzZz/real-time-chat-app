@@ -8,7 +8,7 @@ import (
 )
 
 func (db *SqlDb) CreateUser(user *sql.User) error {
-	return db.DB.Create(user).Error
+	return db.Create(user).Error
 }
 
 func (db *SqlDb) GetUserByName(name string) (*sql.User, error) {
@@ -31,4 +31,18 @@ func (db *SqlDb) GetUserByEmail(email string) (*sql.User, error) {
 		return nil, err // Other errors
 	}
 	return &user, nil
+}
+
+func (db *SqlDb) GetFriends(userID uint) ([]sql.User, error) {
+    var user sql.User
+    if err := db.Preload("Friends").First(&user, userID).Error; err != nil {
+        return nil, err
+    }
+	
+	friends := make([]sql.User, len(user.Friends))
+    for i, friend := range user.Friends {
+        friends[i] = *friend
+    }
+
+    return friends, nil
 }

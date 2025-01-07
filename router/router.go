@@ -36,6 +36,11 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 	g.POST("/login", userAPI.Login)
 	g.POST("/logout", sessionManager.RequireSession(), userAPI.Logout)
 
+	g.POST("/friend-request", sessionManager.RequireSession(), userAPI.SendFriendRequest)
+	g.POST("/friend-request/accept", sessionManager.RequireSession(), userAPI.AcceptFriendRequest)
+	g.GET("/friends", sessionManager.RequireSession(), userAPI.GetFriends)
+	g.GET("/friend-requests", sessionManager.RequireSession(), userAPI.GetFriendRequests)
+
 	g.GET("/ws/chat", sessionManager.RequireSession(), func(c *gin.Context) {
 		chatID := c.Query("chatID")
 		if chatID == "" {
