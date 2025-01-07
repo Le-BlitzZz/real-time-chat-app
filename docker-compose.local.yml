@@ -1,0 +1,32 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: chatapp-mysql-local
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chatapp
+    ports:
+      - "3306:3306"
+    volumes:
+      - chatapp-mysql-data-local:/var/lib/mysql
+    networks:
+      - chatapp-network-local
+
+  redis:
+    image: redis:alpine
+    container_name: chatapp-redis-local
+    ports:
+      - "6379:6379"
+    volumes:
+      - chatapp-redis-data-local:/data
+    networks:
+      - chatapp-network-local
+    restart: unless-stopped
+
+networks:
+  chatapp-network-local:
+    driver: bridge
+
+volumes:
+  chatapp-mysql-data-local:
+  chatapp-redis-data-local:
