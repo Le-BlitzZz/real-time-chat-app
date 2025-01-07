@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div id="auth-container">
+        <h2>Login</h2>
+        <form id="auth-form">
+            <input type="text" id="identifier" name="identifier" placeholder="Email or Username" required />
+            <input type="password" id="password" name="password" placeholder="Password" required />
+            <button type="submit">Login</button>
+        </form>
+        <p>
+            Don't have an account? <a href="/register">Sign Up</a>
+        </p>
+    </div>
+
+    <script>
+        document.getElementById("auth-form").onsubmit = async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            const identifier = document.getElementById("identifier").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identifier, password }),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // Store session token if needed and redirect
+                    window.location.href = "/chat";
+                } else {
+                    alert(data.error || "Login failed");
+                }
+            } catch (error) {
+                console.error("Error during login:", error);
+                alert("An error occurred. Please try again.");
+            }
+        };
+    </script>
+</body>
+
+</html>
