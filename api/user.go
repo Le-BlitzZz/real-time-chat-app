@@ -25,7 +25,6 @@ type UserAPI struct {
 	DB UserDatabase
 }
 
-
 func (api *UserAPI) Register(ctx *gin.Context) {
 	user := sql.CreateUser{}
 	if err := ctx.ShouldBindJSON(&user); err != nil {
@@ -46,7 +45,7 @@ func (api *UserAPI) Register(ctx *gin.Context) {
 	newUser := &sql.User{
 		Name:     user.Name,
 		Email:    user.Email,
-		Password: password.CreatePassword(user.Password),
+		Password: password.GeneratePasswordHash(user.Password),
 		Admin:    false,
 	}
 
@@ -75,13 +74,13 @@ func (api *UserAPI) Login(ctx *gin.Context) {
 		}
 	}
 
-	if !password.ComparePassword(existingUser.Password, []byte(user.Password)) {
+	if !password.CompareHashPassword(existingUser.Password, []byte(user.Password)) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
 	sessionManager := ctx.MustGet("sessionManager").(*auth.SessionManager)
-	if err := sessionManager.CreateSession(ctx.Writer, ctx.Request, existingUser.ID, existingUser.Admin); err != nil {
+	if err := sessionManager.CreateSession(ctx.Writer, ctx.Request, existingUser.ID, existingUser.Name, existingUser.Admin); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session"})
 		return
 	}

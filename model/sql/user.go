@@ -24,7 +24,3 @@ type UpdateUser struct {
 	Email string `json:"email,omitempty" query:"email" form:"email"`
 	Admin bool `json:"admin,omitempty" form:"admin" query:"admin"`
 }
-
-type UserPassword struct {
-	Password string `binding:"required" json:"password" query:"password" form:"password"`
-}

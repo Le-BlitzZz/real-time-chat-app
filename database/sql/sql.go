@@ -3,10 +3,10 @@ package sql
 import (
 	"time"
 
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 	"github.com/Le-BlitzZz/real-time-chat-app/auth/password"
 	"github.com/Le-BlitzZz/real-time-chat-app/model/sql"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 const createDefaultUserIfNotExist = true
@@ -43,15 +43,14 @@ func New(sqlConnection, defaultUserName, defaultUserEmail, defaultPassword strin
 		return nil, err
 	}
 
-
 	var userCount int64 = 0
 	db.Find(new(sql.User)).Count(&userCount)
 	if createDefaultUserIfNotExist && userCount == 0 {
 		db.Create(&sql.User{
-			Name: defaultUserName,
-			Email: defaultUserEmail,
-			Password: password.CreatePassword(defaultPassword),
-			Admin: true,
+			Name:     defaultUserName,
+			Email:    defaultUserEmail,
+			Password: password.GeneratePasswordHash(defaultPassword),
+			Admin:    true,
 		})
 	}
 

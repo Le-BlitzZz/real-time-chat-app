@@ -42,14 +42,16 @@ func (sm *SessionManager) RequireSession() gin.HandlerFunc {
 			return
 		}
 		ctx.Set("userID", userID)
+		ctx.Set("userName", session.Values["user_name"].(string))
 		ctx.Set("admin", session.Values["admin"].(bool))
 		ctx.Next()
 	}
 }
 
-func (sm *SessionManager) CreateSession(w http.ResponseWriter, r *http.Request, userID uint, isAdmin bool) error {
+func (sm *SessionManager) CreateSession(w http.ResponseWriter, r *http.Request, userID uint, userName string, isAdmin bool) error {
 	session, _ := sm.store.Get(r, "chatapp-session")
 	session.Values["user_id"] = userID
+	session.Values["user_name"] = userName
 	session.Values["admin"] = isAdmin
 	return session.Save(r, w)
 }
