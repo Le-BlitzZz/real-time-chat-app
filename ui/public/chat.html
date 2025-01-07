@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div id="chat-container">
+        <h2>Welcome to the Chat</h2>
+        <div id="messages"></div>
+        <div id="input-container">
+            <input type="text" id="message" placeholder="Type a message" />
+            <button id="send">Send</button>
+        </div>
+        <button id="logout">Logout</button>
+    </div>
+
+    <script>
+        // Ensure the WebSocket connection
+        const chatID = "{{.chatID}}" || "default"; // Use chatID provided by the server
+        const chat = new WebSocket(`ws://localhost:8080/ws/chat?chatID=${chatID}`);
+        const messagesDiv = document.getElementById("messages");
+
+        // WebSocket open event
+        chat.onopen = () => {
+            console.log(`Connected to chat: ${chatID}`);
+        };
+
+        // WebSocket message event
+        chat.onmessage = (event) => {
+            try {
+                const rawMsg = JSON.parse(event.data);
+
+                // Deserialize JSON message string if necessary
+                const msg =
+                    typeof rawMsg === "string" ? JSON.parse(rawMsg) : rawMsg;
+
+                // Create a new message element
+                const messageDiv = document.createElement("div");
+                messageDiv.classList.add("message");
+
+                // Format the timestamp
+                const timestamp = new Date(msg.timestamp * 1000).toLocaleTimeString();
+
+                // Add username, timestamp, and message content
+                messageDiv.innerHTML = `
+                    <div class="meta">
+                        <strong>${msg.username}</strong> at ${timestamp}:
+                    </div>
+                    <div>${msg.message}</div>
+                `;
+
+                // Append the message and scroll to the bottom
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } catch (err) {
+                console.error("Error parsing message:", err);
+            }
+        };
+
+        // WebSocket error event
+        chat.onerror = (error) => {
+            console.error("WebSocket Error:", error);
+        };
+
+        // WebSocket close event
+        chat.onclose = () => {
+            alert("Connection closed!");
+            window.location.href = "/";
+        };
+
+        // Send button click event
+        document.getElementById("send").onclick = () => {
+            const messageInput = document.getElementById("message");
+            const message = messageInput.value.trim();
+            if (message) {
+                const msgObj = { message }; // Send only the message
+                chat.send(JSON.stringify(msgObj));
+                messageInput.value = "";
+            }
+        };
+
+        // Logout button click event
+        document.getElementById("logout").onclick = async () => {
+            try {
+                const response = await fetch("/logout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                if (response.ok) {
+                    alert("Logged out successfully.");
+                    window.location.href = "/";
+                } else {
+                    const data = await response.json();
+                    alert(data.error || "Logout failed");
+                }
+            } catch (error) {
+                console.error("Error during logout:", error);
+                alert("An error occurred. Please try again.");
+            }
+        };
+    </script>
+</body>
+
+</html>

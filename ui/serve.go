@@ -1,40 +1,26 @@
 package ui
 
 import (
-	"embed"
-	"io/fs"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Embed the public directory into the binary.
-//
-//go:embed public/*
-var public embed.FS
-
-// Register sets up the UI routes.
 func Register(r *gin.Engine) {
-	// Serve files from the embedded public directory
-	publicFS, err := fs.Sub(public, "public")
-	if err != nil {
-		panic(err)
-	}
+	r.Static("/static", "./ui/public")
+	r.LoadHTMLGlob("./ui/public/*.html")
 
-	// Serve static assets
-	r.StaticFS("/static", http.FS(publicFS))
-
-	// Serve auth.html for the root route
+	// Serve HTML pages directly for key routes
 	r.GET("/", func(ctx *gin.Context) {
-		ctx.FileFromFS("auth.html", http.FS(publicFS))
+		ctx.HTML(http.StatusOK, "auth.html", nil)
 	})
 
 	r.GET("/register", func(ctx *gin.Context) {
-		ctx.FileFromFS("register.html", http.FS(publicFS))
+		ctx.HTML(http.StatusOK, "register.html", nil)
 	})
 
-	// Serve chat.html for the /chat route
 	r.GET("/chat", func(ctx *gin.Context) {
-		ctx.FileFromFS("chat.html", http.FS(publicFS))
+		chatID := ctx.DefaultQuery("chatID", "global")
+		ctx.HTML(http.StatusOK, "chat.html", gin.H{"chatID": chatID})
 	})
 }

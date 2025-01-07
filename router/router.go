@@ -1,7 +1,10 @@
 package router
 
 import (
+	"net/http"
+
 	"github.com/Le-BlitzZz/real-time-chat-app/api"
+	"github.com/Le-BlitzZz/real-time-chat-app/api/chat"
 	"github.com/Le-BlitzZz/real-time-chat-app/auth"
 	"github.com/Le-BlitzZz/real-time-chat-app/config"
 	"github.com/Le-BlitzZz/real-time-chat-app/database"
@@ -25,48 +28,23 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 	sessionManager := auth.NewSessionManager()
 	g.Use(sessionManager.SetSession())
 
-	userHandler := api.UserAPI{DB: db.SQL}
+	userAPI := api.UserAPI{DB: db.SQL}
+	chatAPI := chat.New(db.Redis)
 
 	ui.Register(g)
-	g.POST("/register", userHandler.Register)
-	g.POST("/login", userHandler.Login)
+	g.POST("/register", userAPI.Register)
+	g.POST("/login", userAPI.Login)
+	g.POST("/logout", sessionManager.RequireSession(), userAPI.Logout)
 
-	protected := g.Group("/")
-	protected.Use(sessionManager.RequireSession())
-	{
-		// protected.GET("/user/me", userHandler.GetCurrentUser)
-		protected.POST("/logout", userHandler.Logout)
-	}
+	g.GET("/ws/chat", sessionManager.RequireSession(), func(c *gin.Context) {
+		chatID := c.Query("chatID")
+		if chatID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "chatID is required"})
+			return
+		}
+		c.Set("chatID", chatID)
+		chatAPI.Initialize(c)
+	})
 
 	return g
 }
-
-// func CreateOld(db *database.Database, conf *config.Configuration) *gin.Engine {
-// 	g := gin.Default()
-
-// 	g.Static("/static", "./frontend")
-// 	g.LoadHTMLGlob("./frontend/*.html")
-
-// 	g.GET("/", func(c *gin.Context) {
-// 		c.HTML(http.StatusOK, "auth.html", nil)
-// 	})
-
-// 	g.POST("/register", func(c *gin.Context) {
-// 		auth.Register(c, db)
-// 	})
-// 	g.POST("/login", func(c *gin.Context) {
-// 		auth.Login(c, db)
-// 	})
-
-// 	g.GET(
-// 		"/chat",
-// 		func(c *gin.Context) {
-// 			auth.Authenticate(c, db, conf.JWTSecret)
-// 		},
-// 		func(c *gin.Context) {
-// 			stream.Chat(c, db)
-// 		},
-// 	)
-
-// 	return g
-// }
