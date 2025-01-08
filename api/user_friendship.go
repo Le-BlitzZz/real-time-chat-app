@@ -7,6 +7,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (api *UserAPI) GetFriends(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	friends, err := api.DB.GetFriends(userID.(uint))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve friends"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, friends)
+}
+
 func (api *UserAPI) SendFriendRequest(ctx *gin.Context) {
 	receiver := sql.FriendRequestReceiverId{}
 	if err := ctx.ShouldBindJSON(&receiver); err != nil {

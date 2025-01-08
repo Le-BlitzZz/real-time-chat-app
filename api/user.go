@@ -13,6 +13,7 @@ type UserDatabase interface {
 	GetUserByName(name string) (*sql.User, error)
 	GetUserByEmail(email string) (*sql.User, error)
 	CreateUser(user *sql.User) error
+
 	GetFriends(userID uint) ([]sql.User, error)
 	CreateFriendRequest(senderID, receiverID uint) error
 	GetFriendRequests(receiverID uint) ([]sql.FriendRequest, error)
@@ -108,20 +109,4 @@ func (u *UserAPI) Logout(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "logout successful"})
-}
-
-func (api *UserAPI) GetFriends(ctx *gin.Context) {
-	userID, exists := ctx.Get("userID")
-	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	friends, err := api.DB.GetFriends(userID.(uint))
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not retrieve friends"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, friends)
 }

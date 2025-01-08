@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Le-BlitzZz/real-time-chat-app/api"
-	"github.com/Le-BlitzZz/real-time-chat-app/api/chat"
+	"github.com/Le-BlitzZz/real-time-chat-app/api/channel"
 	"github.com/Le-BlitzZz/real-time-chat-app/auth"
 	"github.com/Le-BlitzZz/real-time-chat-app/config"
 	"github.com/Le-BlitzZz/real-time-chat-app/database"
@@ -29,7 +29,9 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 	g.Use(sessionManager.SetSession())
 
 	userAPI := api.UserAPI{DB: db.SQL}
-	chatAPI := chat.New(db.Redis)
+	chatAPI := api.ChatAPI{SQLDB: db.SQL, RedisDB: db.Redis}
+	
+	channelAPI := channel.New(db.Redis)
 
 	ui.Register(g)
 	g.POST("/register", userAPI.Register)
@@ -48,8 +50,12 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 			return
 		}
 		c.Set("chatID", chatID)
-		chatAPI.Initialize(c)
+		channelAPI.Initialize(c)
 	})
+
+	g.POST("/chat", sessionManager.RequireSession(), chatAPI.CreateChat)
+	g.GET("/chats", sessionManager.RequireSession(), chatAPI.ListChats)
+	g.POST("/chat/leave", sessionManager.RequireSession(), chatAPI.LeaveChat)
 
 	return g
 }

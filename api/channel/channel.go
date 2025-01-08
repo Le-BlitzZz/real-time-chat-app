@@ -1,4 +1,4 @@
-package chat
+package channel
 
 import (
 	"net/http"
@@ -17,7 +17,6 @@ type API struct {
 	redisClient *redis.RedisDb
 }
 
-// New creates a new WebSocket stream API.
 func New(redisClient *redis.RedisDb) *API {
 	return &API{
 		clients:     make(map[uint][]*client),
@@ -26,7 +25,6 @@ func New(redisClient *redis.RedisDb) *API {
 	}
 }
 
-// Initialize upgrades HTTP to WebSocket and registers a client.
 func (api *API) Initialize(ctx *gin.Context) {
 	userID, exists := ctx.Get("userID")
 	if !exists {
@@ -73,14 +71,12 @@ func (api *API) broadcast(chatID uint, message redismodel.Message) {
 	}
 }
 
-// addClientToChat adds a client to the chat.
 func (api *API) addClientToChat(client *client, chatID uint) {
 	api.lock.Lock()
 	defer api.lock.Unlock()
 	api.clients[chatID] = append(api.clients[chatID], client)
 }
 
-// removeClient removes a client from chats.
 func (api *API) removeClient(client *client) {
 	api.lock.Lock()
 	defer api.lock.Unlock()
