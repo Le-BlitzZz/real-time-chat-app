@@ -10,6 +10,7 @@ import (
 )
 
 type UserDatabase interface {
+	GetUserByID(id uint) (*sql.User, error)
 	GetUserByName(name string) (*sql.User, error)
 	GetUserByEmail(email string) (*sql.User, error)
 	CreateUser(user *sql.User) error
@@ -19,6 +20,22 @@ type UserDatabase interface {
 	GetFriendRequests(receiverID uint) ([]sql.FriendRequest, error)
 	AcceptFriendRequest(requestID uint) error
 	RejectFriendRequest(requestID uint) error
+}
+
+func (api *UserAPI) GetCurrentUser(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	user, err := api.DB.GetUserByID(userID.(uint))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get current user"})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"username": user.Name,
+	})
 }
 
 type loginUser struct {

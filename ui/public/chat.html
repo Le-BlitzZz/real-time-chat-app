@@ -9,101 +9,266 @@
 </head>
 
 <body>
-    <div id="chat-container">
-        <h2>Welcome to the Chat</h2>
-        <div id="messages"></div>
-        <div id="input-container">
-            <input type="text" id="message" placeholder="Type a message" />
-            <button id="send">Send</button>
+    <header id="header">
+        <div id="user-info">
+            <span id="username"></span>
+            <button id="logout">Logout</button>
         </div>
-        <button id="logout">Logout</button>
+    </header>
+    <div id="main-container">
+        <!-- Left Panel: Global Chat -->
+        <div id="left-panel">
+            <h3>Global Chat</h3>
+            <div id="global-messages"></div>
+            <div id="global-input-container">
+                <input type="text" id="global-message" placeholder="Type a message" />
+                <button id="send-global">Send</button>
+            </div>
+        </div>
+
+        <!-- Middle Panel: Create and Join Chats -->
+        <div id="middle-panel">
+            <h3>Create or Join a Chat</h3>
+            <input type="text" id="private-chat-username" placeholder="Enter username" />
+            <button id="create-private-chat">Create Chat</button>
+            <h4>Your Chats</h4>
+            <ul id="chats-list"></ul>
+        </div>
+
+        <!-- Right Panel: Friends System -->
+        <div id="right-panel">
+            <h3>Friends List</h3>
+            <ul id="friends-list"></ul>
+            <h4>Add Friend</h4>
+            <input type="text" id="friend-username" placeholder="Enter username" />
+            <button id="send-friend-request">Add Friend</button>
+            <h4>Friend Requests</h4>
+            <ul id="friend-requests"></ul>
+        </div>
     </div>
 
     <script>
-        // Ensure the WebSocket connection
-        const chatID = "{{.chatID}}" || "default"; // Use chatID provided by the server
-        const chat = new WebSocket(`ws://localhost:8080/ws/chat?chatID=${chatID}`);
-        const messagesDiv = document.getElementById("messages");
+        const usernameElement = document.getElementById("username");
+        const logoutButton = document.getElementById("logout");
 
-        // WebSocket open event
-        chat.onopen = () => {
-            console.log(`Connected to chat: ${chatID}`);
-        };
+        const globalMessagesDiv = document.getElementById("global-messages");
+        const globalMessageInput = document.getElementById("global-message");
+        const sendGlobalButton = document.getElementById("send-global");
 
-        // WebSocket message event
-        chat.onmessage = (event) => {
+        const privateChatUsernameInput = document.getElementById("private-chat-username");
+        const createPrivateChatButton = document.getElementById("create-private-chat");
+        const chatsList = document.getElementById("chats-list");
+
+        const friendsList = document.getElementById("friends-list");
+        const friendUsernameInput = document.getElementById("friend-username");
+        const sendFriendRequestButton = document.getElementById("send-friend-request");
+
+        const friendRequestsList = document.getElementById("friend-requests");
+
+        // Load user information
+        window.onload = async () => {
             try {
-                const rawMsg = JSON.parse(event.data);
-
-                // Deserialize JSON message string if necessary
-                const msg =
-                    typeof rawMsg === "string" ? JSON.parse(rawMsg) : rawMsg;
-
-                // Create a new message element
-                const messageDiv = document.createElement("div");
-                messageDiv.classList.add("message");
-
-                // Format the timestamp
-                const timestamp = new Date(msg.timestamp * 1000).toLocaleTimeString();
-
-                // Add username, timestamp, and message content
-                messageDiv.innerHTML = `
-                    <div class="meta">
-                        <strong>${msg.username}</strong> at ${timestamp}:
-                    </div>
-                    <div>${msg.message}</div>
-                `;
-
-                // Append the message and scroll to the bottom
-                messagesDiv.appendChild(messageDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                const response = await fetch("/user-info");
+                if (response.ok) {
+                    const data = await response.json();
+                    usernameElement.textContent = `Logged in as: ${data.username}`;
+                } else {
+                    alert("Failed to load user info. Redirecting to login.");
+                    window.location.href = "/";
+                }
             } catch (err) {
-                console.error("Error parsing message:", err);
+                console.error("Error loading user info:", err);
             }
+
+            loadChats();
         };
 
-        // WebSocket error event
-        chat.onerror = (error) => {
-            console.error("WebSocket Error:", error);
-        };
-
-        // WebSocket close event
-        chat.onclose = () => {
-            alert("Connection closed!");
-            window.location.href = "/";
-        };
-
-        // Send button click event
-        document.getElementById("send").onclick = () => {
-            const messageInput = document.getElementById("message");
-            const message = messageInput.value.trim();
-            if (message) {
-                const msgObj = { message }; // Send only the message
-                chat.send(JSON.stringify(msgObj));
-                messageInput.value = "";
-            }
-        };
-
-        // Logout button click event
-        document.getElementById("logout").onclick = async () => {
+        // Logout button functionality
+        logoutButton.onclick = async () => {
             try {
                 const response = await fetch("/logout", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
                 });
-
                 if (response.ok) {
                     alert("Logged out successfully.");
                     window.location.href = "/";
                 } else {
-                    const data = await response.json();
-                    alert(data.error || "Logout failed");
+                    alert("Logout failed.");
                 }
-            } catch (error) {
-                console.error("Error during logout:", error);
-                alert("An error occurred. Please try again.");
+            } catch (err) {
+                console.error("Logout error:", err);
             }
         };
+
+        // WebSocket for Global Chat
+        const chatID = "0"; // Global Chat ID
+        const chat = new WebSocket(`ws://localhost:8080/ws/chat?chatID=${chatID}`);
+
+        chat.onopen = () => {
+            console.log("Connected to global chat.");
+        };
+
+        chat.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            const messageDiv = document.createElement("div");
+            messageDiv.textContent = `${msg.username} at ${new Date(msg.timestamp * 1000).toLocaleTimeString()}: ${msg.message}`;
+            globalMessagesDiv.appendChild(messageDiv);
+            globalMessagesDiv.scrollTop = globalMessagesDiv.scrollHeight;
+        };
+
+        sendGlobalButton.onclick = () => {
+            const message = globalMessageInput.value.trim();
+            if (message) {
+                chat.send(JSON.stringify({ message }));
+                globalMessageInput.value = "";
+            }
+        };
+
+        // Create a private chat
+        createPrivateChatButton.onclick = async () => {
+            const username = privateChatUsernameInput.value.trim();
+            if (!username) return alert("Please enter a username.");
+
+            try {
+                const response = await fetch("/chat/start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ receiver_nickname: username }),
+                });
+
+                if (response.ok) {
+                    alert(`Private chat created with ${username}.`);
+                    loadChats(); // Refresh the chats list
+                } else {
+                    const data = await response.json();
+                    alert(data.error || "Failed to create private chat.");
+                }
+            } catch (err) {
+                console.error("Error creating private chat:", err);
+            }
+        };
+
+        // Load user's chats
+        async function loadChats() {
+            try {
+                const response = await fetch("/chats");
+                if (response.ok) {
+                    const chats = await response.json();
+                    chatsList.innerHTML = chats
+                        .map(chat => `<li>Chat with ${chat.other_user_name} <button onclick="joinChat(${chat.chat_id})">Join Chat</button></li>`)
+                        .join("");
+                } else {
+                    console.error("Failed to load chats.");
+                }
+            } catch (err) {
+                console.error("Error loading chats:", err);
+            }
+        }
+
+        // Join a private chat
+        function joinChat(chatID) {
+            window.location.href = `/chat/${chatID}`;
+        }
+
+        // Add friend functionality
+        sendFriendRequestButton.onclick = async () => {
+            const friendUsername = friendUsernameInput.value.trim();
+            if (!friendUsername) return alert("Please enter a username.");
+
+            try {
+                const response = await fetch("/friend-request", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ receiver_name: friendUsername }),
+                });
+
+                if (response.ok) {
+                    alert("Friend request sent.");
+                } else {
+                    alert("Failed to send friend request.");
+                }
+            } catch (err) {
+                console.error("Error sending friend request:", err);
+            }
+        };
+
+        // Load friends and friend requests
+        async function loadFriendsAndRequests() {
+            try {
+                const friendsResponse = await fetch("/friends");
+                const requestsResponse = await fetch("/friend-requests");
+
+                if (friendsResponse.ok) {
+                    const friends = await friendsResponse.json();
+                    friendsList.innerHTML = friends
+                        .map(friend => `<li>${friend.name} <button onclick="createChatWithFriend('${friend.name}')">Create Chat</button></li>`)
+                        .join("");
+                }
+
+                if (requestsResponse.ok) {
+                    const requests = await requestsResponse.json();
+                    friendRequestsList.innerHTML = requests
+                        .map(req => `<li>${req.name} <button onclick="acceptFriendRequest(${req.id})">Accept</button> <button onclick="rejectFriendRequest(${req.id})">Reject</button></li>`)
+                        .join("");
+                }
+            } catch (err) {
+                console.error("Error loading friends or requests:", err);
+            }
+        }
+
+        // Accept a friend request
+        async function acceptFriendRequest(requestID) {
+            try {
+                const response = await fetch("/friend-request/accept", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ request_id: requestID }),
+                });
+
+                if (response.ok) {
+                    alert("Friend request accepted.");
+                    loadFriendsAndRequests(); // Reload requests and friends
+                } else {
+                    alert("Failed to accept friend request.");
+                }
+            } catch (err) {
+                console.error("Error accepting friend request:", err);
+            }
+        }
+
+        // Reject a friend request
+        async function rejectFriendRequest(requestID) {
+            try {
+                const response = await fetch("/friend-request/reject", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ request_id: requestID }),
+                });
+
+                if (response.ok) {
+                    alert("Friend request rejected.");
+                    loadFriendsAndRequests(); // Reload requests and friends
+                } else {
+                    alert("Failed to reject friend request.");
+                }
+            } catch (err) {
+                console.error("Error rejecting friend request:", err);
+            }
+        }
+
+        // Create a chat with a friend
+        async function createChatWithFriend(friendName) {
+            privateChatUsernameInput.value = friendName;
+            createPrivateChatButton.click();
+        }
+
+        // Poll friend requests periodically (every 4 seconds)
+        setInterval(loadFriendsAndRequests, 4000);
+        setInterval(loadChats, 4000);
+
+        // Initial fetch when the page loads
+        loadFriendsAndRequests();
+        loadChats();
     </script>
 </body>
 

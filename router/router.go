@@ -29,7 +29,7 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 	g.Use(sessionManager.SetSession())
 
 	userAPI := api.UserAPI{DB: db.SQL}
-	chatAPI := api.ChatAPI{SQLDB: db.SQL, RedisDB: db.Redis}
+	chatAPI := api.ChatAPI{DB: db.Redis, UserDB: db.SQL}
 	
 	channelAPI := channel.New(db.Redis)
 
@@ -40,6 +40,7 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 
 	g.POST("/friend-request", sessionManager.RequireSession(), userAPI.SendFriendRequest)
 	g.POST("/friend-request/accept", sessionManager.RequireSession(), userAPI.AcceptFriendRequest)
+	g.POST("/friend-request/reject", sessionManager.RequireSession(), userAPI.RejectFriendRequest)
 	g.GET("/friends", sessionManager.RequireSession(), userAPI.GetFriends)
 	g.GET("/friend-requests", sessionManager.RequireSession(), userAPI.GetFriendRequests)
 
@@ -53,9 +54,10 @@ func Create(db *database.Database, conf *config.Configuration) *gin.Engine {
 		channelAPI.Initialize(c)
 	})
 
-	g.POST("/chat", sessionManager.RequireSession(), chatAPI.CreateChat)
+	g.POST("/chat/start", sessionManager.RequireSession(), chatAPI.Start)
+	g.GET("/user-info", sessionManager.RequireSession(), userAPI.GetCurrentUser)
 	g.GET("/chats", sessionManager.RequireSession(), chatAPI.ListChats)
-	g.POST("/chat/leave", sessionManager.RequireSession(), chatAPI.LeaveChat)
+	// g.POST("/chat/leave", sessionManager.RequireSession(), chatAPI.LeaveChat)
 
 	return g
 }

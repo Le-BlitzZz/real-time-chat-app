@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <header id="header">
+        <div id="user-info">
+            <span id="username"></span>
+            <button id="back-to-chat">Back to Chat</button>
+        </div>
+    </header>
+    <div id="chat-container">
+        <h3>Private Chat</h3>
+        <div id="messages"></div>
+        <div id="input-container">
+            <input type="text" id="message" placeholder="Type a message" />
+            <button id="send">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatID = "{{.chatID}}";
+        const messagesDiv = document.getElementById("messages");
+        const backButton = document.getElementById("back-to-chat");
+
+        backButton.onclick = () => {
+            window.location.href = "/chat";
+        };
+
+        const chat = new WebSocket(`ws://localhost:8080/ws/chat?chatID=${chatID}`);
+
+        chat.onopen = () => {
+            console.log(`Connected to chat: ${chatID}`);
+        };
+
+        chat.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            const messageDiv = document.createElement("div");
+            messageDiv.textContent = `${msg.username} at ${new Date(msg.timestamp * 1000).toLocaleTimeString()}: ${msg.message}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        };
+
+        document.getElementById("send").onclick = () => {
+            const messageInput = document.getElementById("message");
+            const message = messageInput.value.trim();
+            if (message) {
+                chat.send(JSON.stringify({ message }));
+                messageInput.value = "";
+            }
+        };
+    </script>
+</body>
+
+</html>

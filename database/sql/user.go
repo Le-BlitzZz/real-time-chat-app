@@ -11,6 +11,18 @@ func (db *SqlDb) CreateUser(user *sql.User) error {
 	return db.Create(user).Error
 }
 
+func (db *SqlDb) GetUserByID(id uint) (*sql.User, error) {
+	user := new(sql.User)
+	err := db.Find(user, id).Error
+	if err == gorm.ErrRecordNotFound {
+		err = nil
+	}
+	if user.ID == id {
+		return user, err
+	}
+	return nil, err
+}
+
 func (db *SqlDb) GetUserByName(name string) (*sql.User, error) {
 	var user sql.User
 	if err := db.Where("name = ?", name).First(&user).Error; err != nil {

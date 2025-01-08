@@ -20,23 +20,37 @@ func (api *UserAPI) GetFriends(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, friends)
+	response := make([]gin.H, len(friends))
+	for i, friend := range friends {
+		response[i] = gin.H{
+			"id":   friend.ID,
+			"name": friend.Name,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (api *UserAPI) SendFriendRequest(ctx *gin.Context) {
-	receiver := sql.FriendRequestReceiverId{}
-	if err := ctx.ShouldBindJSON(&receiver); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-
 	senderID, exists := ctx.Get("userID")
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	err := api.DB.CreateFriendRequest(senderID.(uint), receiver.ReceiverID)
+	receiver := sql.FriendRequestReceiver{}
+	if err := ctx.ShouldBindJSON(&receiver); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	user, err := api.DB.GetUserByName(receiver.Name)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not find requested user"})
+		return
+	}
+
+	err = api.DB.CreateFriendRequest(senderID.(uint), user.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not send friend request"})
 		return
@@ -74,7 +88,15 @@ func (api *UserAPI) GetFriendRequests(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, requests)
+	response := make([]gin.H, len(requests))
+	for i, req := range requests {
+		response[i] = gin.H{
+			"id":   req.ID,
+			"name": req.Sender.Name,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
 
 func (api *UserAPI) RejectFriendRequest(ctx *gin.Context) {

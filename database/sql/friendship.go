@@ -12,10 +12,10 @@ func (db *SqlDb) CreateFriendRequest(senderID, receiverID uint) error {
 
 func (db *SqlDb) GetFriendRequests(receiverID uint) ([]sql.FriendRequest, error) {
 	var requests []sql.FriendRequest
-	if err := db.Where("receiver_id = ?", receiverID).Find(&requests).Error; err != nil {
-		return nil, err
-	}
-	return requests, nil
+	err := db.Preload("Sender").Preload("Receiver").
+		Where("receiver_id = ?", receiverID).
+		Find(&requests).Error
+	return requests, err
 }
 
 func (db *SqlDb) AcceptFriendRequest(requestID uint) error {
@@ -25,6 +25,10 @@ func (db *SqlDb) AcceptFriendRequest(requestID uint) error {
 	}
 
 	if err := db.Model(&sql.User{ID: request.SenderID}).Association("Friends").Append(&sql.User{ID: request.ReceiverID}); err != nil {
+		return err
+	}
+
+	if err := db.Model(&sql.User{ID: request.ReceiverID}).Association("Friends").Append(&sql.User{ID: request.SenderID}); err != nil {
 		return err
 	}
 

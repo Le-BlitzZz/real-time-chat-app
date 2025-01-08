@@ -9,10 +9,10 @@ type FriendRequest struct {
 	Receiver User `gorm:"foreignKey:ReceiverID;constraint:OnDelete:CASCADE"`
 }
 
-type FriendRequestReceiverId struct {
-	ReceiverID uint `json:"receiver_id" binding:"required"`
+type FriendRequestReceiver struct {
+	Name string `json:"receiver_name" binding:"required"`
 }
 
 type FriendRequestAcceptReject struct {
-	RequestID uint `json:"receiver_id" binding:"required"`
+	RequestID uint `json:"request_id" binding:"required"`
 }

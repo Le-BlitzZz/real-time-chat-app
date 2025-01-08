@@ -12,7 +12,7 @@ func (db *RedisDb) PublishMessage(ctx context.Context, message redis.Message) er
 		return err
 	}
 
-	return db.Publish(ctx, ChatKey(message.ChatID), jsonMessage).Err()
+	return db.Publish(ctx, ChatMessagesKey(message.ChatID), jsonMessage).Err()
 }
 
 func (db *RedisDb) SaveMessage(ctx context.Context, message redis.Message) error {
@@ -21,7 +21,7 @@ func (db *RedisDb) SaveMessage(ctx context.Context, message redis.Message) error
 		return err
 	}
 
-	chat := ChatKey(message.ChatID)
+	chat := ChatMessagesKey(message.ChatID)
 	if err := db.RPush(ctx, chat, jsonMessage).Err(); err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (db *RedisDb) SaveMessage(ctx context.Context, message redis.Message) error
 }
 
 func (db *RedisDb) GetRecentMessages(ctx context.Context, chatID uint) ([]redis.Message, error) {
-	chat := ChatKey(chatID)
+	chat := ChatMessagesKey(chatID)
 	rawMessages, err := db.LRange(ctx, chat, -nLastMessages, -1).Result()
 	if err != nil {
 		return nil, err
