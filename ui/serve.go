@@ -20,7 +20,7 @@ func Register(r *gin.Engine) {
 	})
 
 	r.GET("/chat", func(ctx *gin.Context) {
-		chatID := ctx.DefaultQuery("chatID", "global")
+		chatID := ctx.DefaultQuery("chatID", "1")
 		ctx.HTML(http.StatusOK, "chat.html", gin.H{"chatID": chatID})
 	})
 }

@@ -11,7 +11,7 @@ import (
 )
 
 type API struct {
-	clients     map[string][]*client // Map chatID -> clients
+	clients     map[uint][]*client // Map chatID -> clients
 	lock        sync.RWMutex
 	upgrader    *websocket.Upgrader
 	redisClient *redis.RedisDb
@@ -20,7 +20,7 @@ type API struct {
 // New creates a new WebSocket stream API.
 func New(redisClient *redis.RedisDb) *API {
 	return &API{
-		clients:     make(map[string][]*client),
+		clients:     make(map[uint][]*client),
 		upgrader:    &websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }},
 		redisClient: redisClient,
 	}
@@ -34,11 +34,12 @@ func (api *API) Initialize(ctx *gin.Context) {
 		return
 	}
 
-	chatID := ctx.Query("chatID")
-	if chatID == "" {
+	chatIDstr := ctx.Query("chatID")
+	if chatIDstr == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "chatID is required"})
 		return
 	}
+	chatID := redis.ParseUint(chatIDstr)
 
 	conn, err := api.upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -56,11 +57,11 @@ func (api *API) Initialize(ctx *gin.Context) {
 		}
 	}()
 
-	go client.startReading(ctx, api.redisClient, chatID, api.Broadcast)
+	go client.startReading(ctx, api.redisClient, chatID, api.broadcast)
 	go client.startWriting()
 }
 
-func (api *API) Broadcast(chatID string, message redismodel.Message) {
+func (api *API) broadcast(chatID uint, message redismodel.Message) {
 	api.lock.RLock()
 	defer api.lock.RUnlock()
 
@@ -73,7 +74,7 @@ func (api *API) Broadcast(chatID string, message redismodel.Message) {
 }
 
 // addClientToChat adds a client to the chat.
-func (api *API) addClientToChat(client *client, chatID string) {
+func (api *API) addClientToChat(client *client, chatID uint) {
 	api.lock.Lock()
 	defer api.lock.Unlock()
 	api.clients[chatID] = append(api.clients[chatID], client)

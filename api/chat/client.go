@@ -19,13 +19,13 @@ type client struct {
 	conn    *websocket.Conn
 	onClose func(*client)
 	write   chan redis.Message
-	chatID  string
+	chatID  uint
 	userID  uint
 	once    sync.Once
 }
 
 // newClient creates a new WebSocket client.
-func newClient(conn *websocket.Conn, userID uint, chatID string, onClose func(*client)) *client {
+func newClient(conn *websocket.Conn, userID, chatID uint, onClose func(*client)) *client {
 	return &client{
 		conn:    conn,
 		write:   make(chan redis.Message, 10),
@@ -44,7 +44,7 @@ func (c *client) Close() {
 }
 
 // NotifyClose closes the WebSocket connection and notifies that the connection was closed.
-func (c *client) NotifyClose() {
+func (c *client) notifyClose() {
 	c.once.Do(func() {
 		c.conn.Close()
 		close(c.write)
@@ -53,8 +53,8 @@ func (c *client) NotifyClose() {
 }
 
 // startReading reads messages from the WebSocket connection.
-func (c *client) startReading(ctx *gin.Context, redisClient *redisdb.RedisDb, chatID string, broadcastFunc func(string, redis.Message)) {
-	defer c.NotifyClose()
+func (c *client) startReading(ctx *gin.Context, redisClient *redisdb.RedisDb, chatID uint, broadcastFunc func(uint, redis.Message)) {
+	defer c.notifyClose()
 
 	username, exists := ctx.Get("userName")
 	if !exists {
@@ -84,21 +84,14 @@ func (c *client) startReading(ctx *gin.Context, redisClient *redisdb.RedisDb, ch
 	}
 }
 
-// startWriting handles outgoing messages and sends pings to keep the connection alive.
 func (c *client) startWriting() {
-	defer c.NotifyClose()
+	defer c.notifyClose()
 
-	for {
-		select {
-		case msg, ok := <-c.write:
-			if !ok {
-				return
-			}
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteJSON(msg); err != nil {
-				fmt.Println("Write error:", err)
-				return
-			}
+	for msg := range c.write {
+		c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		if err := c.conn.WriteJSON(msg); err != nil {
+			fmt.Println("Write error:", err)
+			return
 		}
 	}
 }

@@ -14,7 +14,7 @@ type Chat struct {
 	Type string  `gorm:"type:enum('global','private','group');not null"`
 }
 
-var GlobalChat = &Chat{Type: TypeGlobal}
+var GlobalChat = &Chat{ID: 1, Type: TypeGlobal}
 var PrivateChat = &Chat{Type: TypePrivate}
 
 func NewGroupChat(name string) *Chat {

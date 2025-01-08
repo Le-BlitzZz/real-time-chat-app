@@ -2,8 +2,6 @@ package redis
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"github.com/Le-BlitzZz/real-time-chat-app/model/redis"
 	go_redis "github.com/redis/go-redis/v9"
@@ -83,12 +81,9 @@ func (db *RedisDb) RemoveChat(ctx context.Context, chatID uint) error {
 	}
 
 	for _, userIDstr := range users {
-		userID, err := strconv.ParseUint(userIDstr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("failed to parse userID %s: %w", userIDstr, err)
-		}
+		userID := ParseUint(userIDstr)
 
-		userChatsKey := UserChatsKey(uint(userID))
+		userChatsKey := UserChatsKey(userID)
 		if err := db.SRem(ctx, userChatsKey, chatID).Err(); err != nil {
 			return err
 		}
