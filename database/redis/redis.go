@@ -2,7 +2,8 @@ package redis
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"strconv"
 
 	"github.com/Le-BlitzZz/real-time-chat-app/model/redis"
 	go_redis "github.com/redis/go-redis/v9"
@@ -36,7 +37,7 @@ func (db *RedisDb) PublishMessage(ctx context.Context, message redis.Message) er
 }
 
 func (db *RedisDb) SaveMessage(ctx context.Context, message redis.Message) error {
-	jsonMessage, err := json.Marshal(message)
+	jsonMessage, err := message.Serialize()
 	if err != nil {
 		return err
 	}
@@ -49,12 +50,49 @@ func (db *RedisDb) SaveMessage(ctx context.Context, message redis.Message) error
 	return db.LTrim(ctx, chat, -nLastMessages, -1).Err()
 }
 
-func (db *RedisDb) GetRecentMessages(ctx context.Context, chatID string) ([]redis.Message, error) {
+func (db *RedisDb) GetRecentMessages(ctx context.Context, chatID uint) ([]redis.Message, error) {
 	chat := ChatKey(chatID)
-
 	rawMessages, err := db.LRange(ctx, chat, -nLastMessages, -1).Result()
 	if err != nil {
 		return nil, err
 	}
+
 	return redis.DeserializeMessages(rawMessages)
+}
+
+func (db *RedisDb) AddUserToChat(ctx context.Context, userID uint, chatID uint) error {
+	userChatsKey := UserChatsKey(userID)
+	return db.SAdd(ctx, userChatsKey, chatID).Err()
+}
+
+func (db *RedisDb) GetUserChats(ctx context.Context, userID uint) ([]string, error) {
+	userChatsKey := UserChatsKey(userID)
+	return db.SMembers(ctx, userChatsKey).Result()
+}
+
+func (db *RedisDb) RemoveChat(ctx context.Context, chatID uint) error {
+	chatUsersKey := ChatUsersKey(chatID)
+	users, err := db.SMembers(ctx, chatUsersKey).Result()
+	if err != nil {
+		return err
+	}
+
+	chatKey := ChatKey(chatID)
+	if err := db.Del(ctx, chatKey).Err(); err != nil {
+		return err
+	}
+
+	for _, userIDstr := range users {
+		userID, err := strconv.ParseUint(userIDstr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse userID %s: %w", userIDstr, err)
+		}
+
+		userChatsKey := UserChatsKey(uint(userID))
+		if err := db.SRem(ctx, userChatsKey, chatID).Err(); err != nil {
+			return err
+		}
+	}
+
+	return db.Del(ctx, chatUsersKey).Err()
 }

@@ -8,15 +8,15 @@ import (
 type Message struct {
 	Username  string `json:"username"`
 	Message   string `json:"message"`
-	ChatID    string `json:"chat_id"`
+	ChatID    uint   `json:"chat_id"`
 	Timestamp int64  `json:"timestamp"` // Unix timestamp
 }
 
 type MessageIncoming struct {
-	Message   string `json:"message"`
+	Message string `json:"message"`
 }
 
-func NewMessage(username, message, chatID string) Message {
+func NewMessage(username, message string, chatID uint) Message {
 	return Message{
 		Username:  username,
 		Message:   message,

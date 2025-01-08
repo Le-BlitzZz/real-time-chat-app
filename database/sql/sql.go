@@ -39,7 +39,7 @@ func New(sqlConnection, defaultUserName, defaultUserEmail, defaultPassword strin
 	// See https://github.com/docker-library/mariadb/issues/113
 	sqlDb.SetConnMaxLifetime(9 * time.Minute)
 
-	if err := db.AutoMigrate(new(sql.User), new(sql.FriendRequest)); err != nil {
+	if err := db.AutoMigrate(new(sql.User), new(sql.FriendRequest), new(sql.Chat)); err != nil {
 		return nil, err
 	}
 
@@ -53,6 +53,8 @@ func New(sqlConnection, defaultUserName, defaultUserEmail, defaultPassword strin
 			Admin:    true,
 		})
 	}
+
+	db.Create(sql.GlobalChat)
 
 	return &SqlDb{db}, nil
 }
