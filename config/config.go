@@ -41,7 +41,7 @@ func Get() *Configuration {
 
 func getConfigFile() string {
 	if mode.IsLocalDev() {
-		return mode.ConfigDockerDevFile
+		return mode.ConfigLocalDevFile
 	}
 	return mode.ConfigDockerDevFile
 }
