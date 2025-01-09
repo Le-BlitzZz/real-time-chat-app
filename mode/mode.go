@@ -9,6 +9,9 @@ const (
 
 var mode = LocalDev
 
+const ConfigLocalDevFile = "./config.local.yml"
+const ConfigDockerDevFile = "./config.docker.yml"
+
 func Set(newMode string) {
 	mode = newMode
 }

@@ -1,0 +1,14 @@
+Server:
+  ListenAddr: ""
+  Port: "8080"
+
+Database:
+  SQL:
+    Connection: "root:root@tcp(localhost:3306)/chatapp?charset=utf8mb4&parseTime=True&loc=Local"
+  Redis:
+    Addr: "localhost:6379"
+
+DefaultUser:
+  Name: "admin"
+  Email: "admin@example.com"
+  Password: "admin"

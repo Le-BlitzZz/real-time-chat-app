@@ -1,0 +1,48 @@
+services:
+  app:
+    image: golang:1.23
+    container_name: chatapp-app-docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - chatapp-network-docker
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ./config.yml:/app/config.yml
+    command: ["go", "run", "app.go"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: chatapp-mysql-docker
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chatapp
+    ports:
+      - "3306:3306"
+    volumes:
+      - chatapp-mysql-data-docker:/var/lib/mysql
+    networks:
+      - chatapp-network-docker
+
+  redis:
+    image: redis:alpine
+    container_name: chatapp-redis-docker
+    ports:
+      - "6379:6379"
+    volumes:
+      - chatapp-redis-data-docker:/data
+    networks:
+      - chatapp-network-docker
+    restart: unless-stopped
+
+networks:
+  chatapp-network-docker:
+    driver: bridge
+
+volumes:
+  chatapp-mysql-data-docker:
+  chatapp-redis-data-docker:

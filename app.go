@@ -11,7 +11,7 @@ import (
 	"github.com/Le-BlitzZz/real-time-chat-app/runner"
 )
 
-var Mode = mode.LocalDev
+var Mode = mode.DockerDev
 
 func main() {
 	mode.Set(Mode)

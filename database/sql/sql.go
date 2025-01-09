@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"log"
 	"time"
 
 	"github.com/Le-BlitzZz/real-time-chat-app/auth/password"
@@ -21,13 +22,23 @@ func (db *SqlDb) Close() {
 }
 
 func New(sqlConnection, defaultUserName, defaultUserEmail, defaultPassword string) (*SqlDb, error) {
-	db, err := gorm.Open(mysql.New(mysql.Config{
-		DSN: sqlConnection,
-	}), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
+	maxRetries := 25
+	var db *gorm.DB
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		db, err = gorm.Open(mysql.New(mysql.Config{
+			DSN: sqlConnection,
+		}), &gorm.Config{})
 
+
+		if err == nil {
+			log.Println("Successfully connected to the database.")
+			break
+		}
+
+		log.Printf("Database connection failed: %v. Retrying in 2 seconds... (%d/%d)", err, i+1, maxRetries)
+		time.Sleep(2 * time.Second)
+	}
 	// We normally don't need that much connections, so we limit them. F.ex. mysql complains about
 	// "too many connections", while load testing Gotify.
 	sqlDb, _ := db.DB()
